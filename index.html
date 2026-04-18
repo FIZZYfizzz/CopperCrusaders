@@ -883,29 +883,23 @@ function startExperience() {
     .to(barLabel,   { opacity: 1, duration: 0.9, ease: 'power2.out' }, '+=0.55')
     .to(scrollHint, { opacity: 1, duration: 0.8, ease: 'power2.out' }, '-=0.3');
 
-  // ── RENDER LOOP
-  gsap.ticker.add(() => {
+  // ── RENDER LOOP — stored so we can remove it after the bar exits
+  const renderLoop = () => {
     if (spinMode) {
-      // Full continuous spin at current idleSpeed
       rotY += idleSpeed;
     } else {
-      // Gentle sway: oscillate between -0.55 and +0.12 rad
       rotY += idleSpeed * swayDir;
       if (rotY >  0.12) { rotY =  0.12; swayDir = -1; }
       if (rotY < -0.55) { rotY = -0.55; swayDir =  1; }
     }
+    if (useCanvas) drawCanvasBar(rotY);
+    else barImg.style.transform = `rotateY(${rotY * 180 / Math.PI}deg) rotateZ(-1.5deg)`;
+  };
+  gsap.ticker.add(renderLoop);
 
-    if (useCanvas) {
-      drawCanvasBar(rotY);
-    } else {
-      const deg = rotY * (180 / Math.PI);
-      barImg.style.transform = `rotateY(${deg}deg) rotateZ(-1.5deg)`;
-    }
-  });
-
-  // ── IDLE FLOAT
+  // ── IDLE FLOAT — stored so fireExit() can kill it cleanly
   const floatProxy = { v: 0 };
-  gsap.to(floatProxy, {
+  const floatTween = gsap.to(floatProxy, {
     v: 1, duration: 3.3, ease: 'sine.inOut', yoyo: true, repeat: -1,
     onUpdate() {
       if (launched) return;
@@ -913,62 +907,52 @@ function startExperience() {
     }
   });
 
-  // ── EXIT TIMELINE (scroll-driven, not time-driven)
-  // By making the bar's Y position a function of scroll progress,
-  // the bar exit and pin release are guaranteed to be in sync:
-  // at exactly 100% pin progress, bar is off-screen AND next section is at top.
+  // ── EXIT: time-based, scroll is only the trigger
+  // Scroll crosses a threshold → fireExit() runs once on its own clock.
+  // When it finishes, the scroll jumps to the pin end which releases the
+  // pin and brings the next section to the top immediately.
   const vh = window.innerHeight;
-  const exitTl = gsap.timeline({ paused: true });
-  exitTl
-    .to([barLabel, scrollHint], { opacity: 0, duration: 0.2, ease: 'power2.in' }, 0)
-    .to(barLift, { y: -vh * 1.85, ease: 'power4.in', duration: 1 }, 0)
-    .to(activeEl, { opacity: 0, duration: 0.3, ease: 'power2.in' }, 0.55);
+  let heroPinST;
 
-  // ── SCROLL: PIN + SCRUB + SNAP
-  // scrub: 0.4 — bar follows scroll with a short lag (feels weighty, not mechanical)
-  // snap — when user releases scroll, it snaps to either 0% or 100%:
-  //   below 50% progress → snaps back to hero  (bar returns)
-  //   above 50% progress → snaps to completion (bar exits, section appears)
-  // This is the "lock-in" feel: once committed, the animation finishes itself.
-  ScrollTrigger.create({
+  function fireExit() {
+    launched = true;
+    floatTween.kill();
+    idleSpeed = 0.4; // lock spin at max for the duration of the exit
+
+    gsap.timeline({
+      onComplete() {
+        gsap.ticker.remove(renderLoop);
+        window.scrollTo({ top: heroPinST.end + 2, behavior: 'instant' });
+      }
+    })
+      .to([barLabel, scrollHint], { opacity: 0,        duration: 0.18, ease: 'power2.in' }, 0)
+      .to(barLift,                { y: -vh * 1.85,     duration: 0.85, ease: 'power4.in' }, 0)
+      .to(activeEl,               { opacity: 0,        duration: 0.28, ease: 'power2.in' }, 0.52);
+  }
+
+  // ── SCROLL: PIN (trigger only — no scrub, no snap)
+  // end: '+=300%' is a safe upper bound — even aggressive scrollers
+  // cannot reach it before the 0.85s animation completes.
+  // After animation, we jump scroll to heroPinST.end programmatically.
+  heroPinST = ScrollTrigger.create({
     trigger: '#hero',
     start: 'top top',
-    end: '+=150%',
+    end: '+=300%',
     pin: true,
-    scrub: prefersReducedMotion ? true : 0.4,
-    snap: prefersReducedMotion ? false : {
-      snapTo: [0, 1.65],
-      delay: 0,
-      duration: { min: 0.4, max: 1.2 },
-      ease: 'power2.inOut'
-    },
     onUpdate(self) {
       const p = self.progress;
 
-      // Spin mode + speed ramp driven by scroll progress
-      if (p > 0.04 && !spinMode) { spinMode = true; idleSpeed = 0.004; }
-      if (p <= 0.04 && spinMode) { spinMode = false; idleSpeed = 0.004; }
-      if (spinMode) {
+      // Spin starts on first scroll
+      if (p > 0.01 && !spinMode) { spinMode = true; }
+
+      // Speed ramps with scroll depth while pre-exit
+      if (spinMode && !launched) {
         const sp = Math.min(p / 0.50, 1);
-        idleSpeed = 0.004 + Math.pow(sp, 2.4) * 0.376;
+        idleSpeed = 0.004 + Math.pow(sp, 2.5) * 0.4;
       }
 
-      // Map scroll [60%→100%] to exit timeline [0→1]
-      // Bar stays centred for first 60% of scroll, then exits over last 40%
-      const exitP = Math.max(0, Math.min(1, (p - 0.55) / 0.35));
-      exitTl.progress(exitP);
-
-      // Kill float the moment exit starts, so it doesn't fight exitTl's y
-      if (exitP > 0.02 && !launched) {
-        launched = true;
-        gsap.killTweensOf(floatProxy);
-      }
-      // If scrolled back before exit, restore float state
-      if (exitP <= 0 && launched) {
-        launched = false;
-        spinMode  = false;
-        idleSpeed = 0.004;
-      }
+      // Fire exit once user has scrolled ~10% of the pin (~30% of one viewport)
+      if (p > 0.10 && !launched) fireExit();
     }
   });
 }
