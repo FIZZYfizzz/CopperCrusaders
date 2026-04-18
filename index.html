@@ -949,13 +949,13 @@ function startExperience() {
       if (p > 0.04 && !spinMode) { spinMode = true; idleSpeed = 0.004; }
       if (p <= 0.04 && spinMode) { spinMode = false; idleSpeed = 0.004; }
       if (spinMode) {
-        const sp = Math.min(p / 0.65, 1);
+        const sp = Math.min(p / 0.50, 1);
         idleSpeed = 0.004 + Math.pow(sp, 2.4) * 0.376;
       }
 
       // Map scroll [60%→100%] to exit timeline [0→1]
       // Bar stays centred for first 60% of scroll, then exits over last 40%
-      const exitP = Math.max(0, Math.min(1, (p - 0.60) / 0.40));
+      const exitP = Math.max(0, Math.min(1, (p - 0.55) / 0.35));
       exitTl.progress(exitP);
 
       // Kill float the moment exit starts, so it doesn't fight exitTl's y
