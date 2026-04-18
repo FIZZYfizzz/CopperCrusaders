@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Copper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0A0807;
+  --text: #F0E8DC;
+  --copper: rgba(196, 114, 40, 0.85);
+}
+
+html { scroll-behavior: auto; }
+
+body {
+  background: var(--bg);
+  overflow-x: hidden;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+/* Grain */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23g)' opacity='1'/></svg>");
+  opacity: 0.055;
+  pointer-events: none;
+  z-index: 9000;
+  mix-blend-mode: screen;
+}
+
+/* ─── HERO ─── */
+#hero {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 52%, rgba(160, 78, 18, 0.09) 0%, transparent 62%);
+}
+
+/* ─── BAR ─── */
+#bar-lift {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+#bar-perspective {
+  perspective: 1100px;
+  perspective-origin: 50% 44%;
+}
+
+#bar-img {
+  display: block;
+  width: clamp(320px, 48vw, 580px);
+  height: auto;
+  transform-origin: center center;
+  will-change: transform;
+  filter: drop-shadow(0px 38px 72px rgba(180, 88, 18, 0.42))
+          drop-shadow(0px  8px 22px rgba(140, 58, 10, 0.30));
+}
+
+#bar-canvas {
+  display: none;
+  filter: drop-shadow(0px 38px 72px rgba(180, 88, 18, 0.42))
+          drop-shadow(0px  8px 22px rgba(140, 58, 10, 0.30));
+}
+
+#bar-label {
+  margin-top: 30px;
+  opacity: 0;
+  text-align: center;
+}
+
+#bar-label span {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 9px;
+  letter-spacing: 0.58em;
+  color: rgba(210, 152, 52, 0.55);
+  text-transform: uppercase;
+}
+
+/* Scroll hint */
+#scroll-hint {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+}
+
+#scroll-hint span {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 8px;
+  letter-spacing: 0.55em;
+  color: rgba(210, 152, 52, 0.32);
+  text-transform: uppercase;
+}
+
+.scroll-line {
+  width: 1px;
+  height: 44px;
+  background: linear-gradient(180deg, rgba(210, 130, 40, 0.52) 0%, transparent 100%);
+  transform-origin: top;
+  animation: lineBreath 2.4s ease-in-out infinite;
+}
+
+@keyframes lineBreath {
+  0%, 100% { opacity: 0.4; transform: scaleY(0.84); }
+  55%       { opacity: 1.0; transform: scaleY(1.00); }
+}
+
+/* ─── SECTION: MATERIAL ─── */
+#section-material {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+#section-material::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(196,114,40,0.28) 30%,
+    rgba(196,114,40,0.45) 50%,
+    rgba(196,114,40,0.28) 70%,
+    transparent 100%
+  );
+}
+
+.material-layout {
+  position: relative;
+  max-width: 1100px;
+  width: 100%;
+  padding: 110px 60px;
+  display: flex;
+  align-items: center;
+  gap: 96px;
+  z-index: 2;
+}
+
+.material-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.material-right {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Cu interactive panel */
+.cu-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: default;
+  margin-bottom: 48px;
+}
+
+.cu-mark {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 400;
+  font-size: clamp(100px, 12vw, 158px);
+  line-height: 0.88;
+  color: rgba(196, 114, 40, 0.38);
+  user-select: none;
+  letter-spacing: -0.02em;
+  transition: color 0.55s ease, text-shadow 0.55s ease;
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.cu-panel:hover .cu-mark {
+  color: rgba(196, 114, 40, 0.70);
+  text-shadow: 0 0 90px rgba(180, 88, 16, 0.22);
+}
+
+.cu-number {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 8px;
+  letter-spacing: 0.52em;
+  color: rgba(196, 114, 40, 0.30);
+  text-transform: uppercase;
+  margin-top: 16px;
+  transition: color 0.4s ease;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.cu-panel:hover .cu-number {
+  color: rgba(196, 114, 40, 0.55);
+}
+
+.material-eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 8px;
+  letter-spacing: 0.6em;
+  color: rgba(196, 114, 40, 0.72);
+  text-transform: uppercase;
+  margin-bottom: 56px;
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.material-block {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.material-block p {
+  font-size: clamp(17px, 1.9vw, 21px);
+  line-height: 1.84;
+  color: rgba(240, 224, 200, 0.70);
+  font-weight: 300;
+  font-style: italic;
+}
+
+.material-rule {
+  width: 28px;
+  height: 1px;
+  background: rgba(196, 114, 40, 0.32);
+  margin: 44px 0;
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* Props: vertical list in right column */
+.material-props {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.prop-item {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(196, 114, 40, 0.09);
+  cursor: default;
+  transition: border-color 0.25s ease;
+}
+
+.prop-item:first-child {
+  border-top: 1px solid rgba(196, 114, 40, 0.09);
+}
+
+.prop-item:hover {
+  border-color: rgba(196, 114, 40, 0.22);
+}
+
+.prop-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 7.5px;
+  letter-spacing: 0.44em;
+  color: rgba(196, 114, 40, 0.55);
+  text-transform: uppercase;
+  transition: color 0.22s ease;
+}
+
+.prop-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 300;
+  color: rgba(240, 224, 200, 0.42);
+  letter-spacing: 0.04em;
+  transition: color 0.22s ease;
+}
+
+.prop-item:hover .prop-label { color: rgba(196, 114, 40, 0.82); }
+.prop-item:hover .prop-value  { color: rgba(240, 224, 200, 0.75); }
+
+/* ─── SECTION: PRODUCT ─── */
+#section-product {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+#section-product::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(196,114,40,0.28) 30%,
+    rgba(196,114,40,0.45) 50%,
+    rgba(196,114,40,0.28) 70%,
+    transparent 100%
+  );
+}
+
+.product-inner {
+  position: relative;
+  max-width: 1100px;
+  width: 100%;
+  padding: 120px 60px;
+  z-index: 2;
+}
+
+.product-eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 8px;
+  letter-spacing: 0.6em;
+  color: rgba(196, 114, 40, 0.72);
+  text-transform: uppercase;
+  margin-bottom: 68px;
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.product-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 88px;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.product-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: clamp(40px, 5.5vw, 72px);
+  line-height: 1.02;
+  color: rgba(240, 224, 200, 0.88);
+  letter-spacing: -0.01em;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.product-title em {
+  font-style: italic;
+  color: rgba(196, 114, 40, 0.70);
+}
+
+.product-weight {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 8.5px;
+  letter-spacing: 0.48em;
+  color: rgba(196, 114, 40, 0.42);
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(12px);
+  align-self: flex-end;
+  padding-bottom: 10px;
+}
+
+.product-specs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid rgba(196, 114, 40, 0.10);
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.spec-item {
+  padding: 44px 44px 44px 0;
+  border-right: 1px solid rgba(196, 114, 40, 0.07);
+  cursor: default;
+}
+
+.spec-item:first-child { padding-left: 0; }
+
+.spec-item:not(:first-child) { padding-left: 44px; }
+
+.spec-item:last-child { border-right: none; }
+
+.spec-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 7.5px;
+  letter-spacing: 0.44em;
+  color: rgba(196, 114, 40, 0.45);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: block;
+  transition: color 0.22s ease;
+}
+
+.spec-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(30px, 3.8vw, 48px);
+  font-weight: 300;
+  color: rgba(240, 224, 200, 0.55);
+  letter-spacing: 0.01em;
+  display: block;
+  line-height: 1;
+  transition: color 0.22s ease;
+}
+
+.spec-unit {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 8px;
+  letter-spacing: 0.38em;
+  color: rgba(196, 114, 40, 0.30);
+  text-transform: uppercase;
+  margin-top: 10px;
+  display: block;
+  transition: color 0.22s ease;
+}
+
+.spec-item:hover .spec-label  { color: rgba(196, 114, 40, 0.75); }
+.spec-item:hover .spec-value  { color: rgba(240, 224, 200, 0.82); }
+.spec-item:hover .spec-unit   { color: rgba(196, 114, 40, 0.52); }
+
+.product-footer {
+  margin-top: 0;
+  padding-top: 44px;
+  border-top: 1px solid rgba(196, 114, 40, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 40px;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.product-note {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(14px, 1.55vw, 16px);
+  color: rgba(240, 224, 200, 0.30);
+  line-height: 1.65;
+  max-width: 420px;
+}
+
+.product-cta {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 8px;
+  letter-spacing: 0.5em;
+  color: rgba(196, 114, 40, 0.52);
+  text-transform: uppercase;
+  padding: 18px 34px;
+  border: 1px solid rgba(196, 114, 40, 0.20);
+  transition: color 0.28s ease, border-color 0.28s ease;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.product-cta:hover {
+  color: rgba(196, 114, 40, 0.90);
+  border-color: rgba(196, 114, 40, 0.48);
+}
+
+@media (max-width: 780px) {
+  .material-layout { flex-direction: column-reverse; padding: 80px 32px; gap: 60px; }
+  .material-right  { flex: none; width: 100%; }
+  .product-specs   { grid-template-columns: 1fr 1fr; }
+  .spec-item:nth-child(2) { border-right: none; }
+  .product-inner   { padding: 80px 32px; }
+  .product-header  { flex-direction: column; gap: 16px; }
+}
+
+/* ─── SECTION: CLOSE ─── */
+#section-close {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.close-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.close-bar-echo {
+  width: 68px;
+  height: 19px;
+  margin-bottom: 60px;
+  opacity: 0;
+  perspective: 160px;
+}
+
+.close-bar-echo-inner {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(132deg, #D08530 0%, #9A5018 45%, #401808 100%);
+  border-radius: 1px;
+  transform: rotateX(-13deg) rotateY(-20deg);
+  box-shadow: 0 3px 14px rgba(196,114,40,0.15), inset 0 1px 0 rgba(255,215,130,0.22);
+}
+
+.close-headline {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: clamp(15px, 1.8vw, 18px);
+  letter-spacing: 0.3em;
+  color: rgba(240, 224, 200, 0.28);
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.close-sub {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 8px;
+  letter-spacing: 0.55em;
+  color: rgba(196, 114, 40, 0.30);
+  margin-top: 20px;
+  opacity: 0;
+  transform: translateY(8px);
+}
+</style>
+</head>
+<body>
+
+<section id="hero">
+  <div id="bar-lift">
+    <div id="bar-perspective">
+      <!-- Real PNG — shown when file exists -->
+      <img id="bar-img" src="/assets/bar.png" alt="Copper bar"
+           onerror="this.style.display='none'; document.getElementById('bar-canvas').style.display='block';">
+      <!-- Canvas fallback — shown when PNG is missing -->
+      <canvas id="bar-canvas" style="display:none;"></canvas>
+    </div>
+    <div id="bar-label"><span>Cu &thinsp;&middot;&thinsp; 29 &thinsp;&middot;&thinsp; Copper</span></div>
+  </div>
+  <div id="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<section id="section-material">
+  <div class="material-layout">
+
+    <div class="material-left">
+      <div class="material-eyebrow">Element 29</div>
+
+      <div class="material-block">
+        <p>Copper has been worked by human hands for more than ten thousand years. It was the first metal we shaped into tools, the first we cast, the first we alloyed. Before iron. Before steel. Copper was civilisation's beginning.</p>
+      </div>
+      <div class="material-rule"></div>
+      <div class="material-block">
+        <p>Of all conductive metals, copper carries current with the least resistance. It moves heat, electricity, and signal with a purity that no synthetic material has surpassed. The physical world still depends on it.</p>
+      </div>
+      <div class="material-rule"></div>
+      <div class="material-block">
+        <p>A refined copper bar is the material in its most essential form — extracted, purified, cast, and finished. No alloy. No coating. Nothing added. Copper as an idea made solid.</p>
+      </div>
+    </div>
+
+    <div class="material-right">
+      <div class="cu-panel">
+        <div class="cu-mark">Cu</div>
+        <div class="cu-number">Element &thinsp;&middot;&thinsp; 29</div>
+      </div>
+      <div class="material-props">
+        <div class="prop-item"><span class="prop-label">Atomic weight</span><span class="prop-value">63.546</span></div>
+        <div class="prop-item"><span class="prop-label">Melting point</span><span class="prop-value">1,084 °C</span></div>
+        <div class="prop-item"><span class="prop-label">Conductivity</span><span class="prop-value">59.6 MS/m</span></div>
+        <div class="prop-item"><span class="prop-label">Purity</span><span class="prop-value">99.99%</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section id="section-product">
+  <div class="product-inner">
+    <div class="product-eyebrow">The Bar</div>
+
+    <div class="product-header">
+      <div class="product-title">Five kilograms<br>of <em>pure copper.</em></div>
+      <div class="product-weight">5,000 g &thinsp;&middot;&thinsp; Cu 99.99%</div>
+    </div>
+
+    <div class="product-specs">
+      <div class="spec-item">
+        <span class="spec-label">Weight</span>
+        <span class="spec-value">5.000</span>
+        <span class="spec-unit">Kilograms</span>
+      </div>
+      <div class="spec-item">
+        <span class="spec-label">Dimensions</span>
+        <span class="spec-value">150 × 52</span>
+        <span class="spec-unit">Millimetres</span>
+      </div>
+      <div class="spec-item">
+        <span class="spec-label">Purity grade</span>
+        <span class="spec-value">99.99%</span>
+        <span class="spec-unit">Electrolytic copper</span>
+      </div>
+    </div>
+
+    <div class="product-footer">
+      <div class="product-note">Each bar is individually assay-certified, serial-stamped, and delivered in sealed packaging. Cast once. Marked permanently.</div>
+      <div class="product-cta">Inquire</div>
+    </div>
+  </div>
+</section>
+
+<section id="section-close">
+  <div class="close-inner">
+    <div class="close-bar-echo"><div class="close-bar-echo-inner"></div></div>
+    <div class="close-headline">Cast in permanence</div>
+    <div class="close-sub">Cu &thinsp;&middot;&thinsp; 29 &thinsp;&middot;&thinsp; 63.546</div>
+  </div>
+</section>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// ─── ELEMENTS ───
+const barImg     = document.getElementById('bar-img');
+const barCanvas  = document.getElementById('bar-canvas');
+const barLift    = document.getElementById('bar-lift');
+const barLabel   = document.getElementById('bar-label');
+const scrollHint = document.getElementById('scroll-hint');
+
+let launched    = false;
+let activeEl    = barImg; // will switch to canvas if img fails
+
+// ─── CANVAS FALLBACK SETUP ───
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const CW = 580, CH = 230;
+const ctx = barCanvas.getContext('2d');
+barCanvas.width  = CW * DPR;
+barCanvas.height = CH * DPR;
+barCanvas.style.width  = CW + 'px';
+barCanvas.style.height = CH + 'px';
+ctx.scale(DPR, DPR);
+
+const ccx = CW / 2, ccy = CH / 2 + 8;
+const BW = 460, BH = 105, BD = 50, TILT = 0.19;
+
+function drawCanvasBar(ry) {
+  ctx.clearRect(0, 0, CW, CH);
+  const cos = Math.cos(ry), sin = Math.sin(ry);
+  const fw = BW * Math.abs(cos), sd = BD * Math.abs(sin), th = BD * Math.abs(sin) * TILT;
+  const right = sin > 0;
+  const x0 = ccx - fw/2, x1 = ccx + fw/2, y0 = ccy - BH/2, y1 = ccy + BH/2;
+  const ox = right ? sd : -sd, oy = -th;
+
+  // Shadow
+  ctx.save();
+  const sg = ctx.createRadialGradient(ccx, y1+14, 3, ccx, y1+14, fw*0.55);
+  sg.addColorStop(0,'rgba(80,40,10,0.20)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.scale(1, 0.26); ctx.beginPath(); ctx.arc(ccx,(y1+14)/0.26,fw*0.52,0,Math.PI*2);
+  ctx.fillStyle=sg; ctx.fill(); ctx.restore();
+
+  // Top face
+  if (Math.abs(sin)>0.015) {
+    ctx.save(); ctx.beginPath();
+    ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.lineTo(x1+ox,y0+oy); ctx.lineTo(x0+ox,y0+oy);
+    ctx.closePath();
+    const tg=ctx.createLinearGradient(right?x0:x1+ox,y0+oy,right?x1:x0+ox,y0);
+    tg.addColorStop(0,'#F0C068'); tg.addColorStop(0.4,'#D09035'); tg.addColorStop(1,'#885515');
+    ctx.fillStyle=tg; ctx.fill(); ctx.restore();
+  }
+
+  // Side face
+  if (Math.abs(sin)>0.015) {
+    const sx=right?x1:x0;
+    ctx.save(); ctx.beginPath();
+    ctx.moveTo(sx,y0); ctx.lineTo(sx+ox,y0+oy); ctx.lineTo(sx+ox,y1+oy); ctx.lineTo(sx,y1);
+    ctx.closePath();
+    const sg2=ctx.createLinearGradient(sx,y0,sx,y1);
+    if(!right){sg2.addColorStop(0,'#8A4C20');sg2.addColorStop(1,'#4A2208');}
+    else{sg2.addColorStop(0,'#4A2010');sg2.addColorStop(1,'#200A04');}
+    ctx.fillStyle=sg2; ctx.fill();
+    // seam
+    ctx.beginPath(); ctx.moveTo(sx,y0); ctx.lineTo(sx,y1);
+    const sm=ctx.createLinearGradient(sx,y0,sx,y1);
+    sm.addColorStop(0,'rgba(255,230,150,0.38)'); sm.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.strokeStyle=sm; ctx.lineWidth=1.5; ctx.stroke(); ctx.restore();
+  }
+
+  // Front face
+  ctx.save(); ctx.beginPath();
+  ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.lineTo(x1,y1); ctx.lineTo(x0,y1);
+  ctx.closePath(); ctx.clip();
+  const fg=ctx.createLinearGradient(x0,y0,x0+fw*0.85,y1);
+  fg.addColorStop(0,'#EEAD58'); fg.addColorStop(0.12,'#D48030'); fg.addColorStop(0.28,'#B86220');
+  fg.addColorStop(0.48,'#8A4015'); fg.addColorStop(0.68,'#601E08'); fg.addColorStop(1,'#280804');
+  ctx.fillStyle=fg; ctx.fillRect(x0,y0,fw,BH);
+  // Bloom
+  const bx=x0+fw*(0.18+(1-Math.abs(cos))*0.1), by=y0+BH*0.3;
+  const bl=ctx.createRadialGradient(bx,by,0,bx,by,fw*0.5);
+  bl.addColorStop(0,'rgba(255,245,200,0.80)'); bl.addColorStop(0.14,'rgba(255,225,150,0.48)');
+  bl.addColorStop(0.38,'rgba(230,160,75,0.12)'); bl.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=bl; ctx.fillRect(x0,y0,fw,BH);
+  // Streak
+  const sk=ctx.createLinearGradient(x0+fw*0.06,0,x0+fw*0.52,0);
+  sk.addColorStop(0,'rgba(255,252,222,0)'); sk.addColorStop(0.25,'rgba(255,252,222,0.94)');
+  sk.addColorStop(0.6,'rgba(255,244,198,0.68)'); sk.addColorStop(1,'rgba(255,252,222,0)');
+  ctx.fillStyle=sk; ctx.fillRect(x0+fw*0.06, y0+BH*0.25, fw*0.48, 2);
+  ctx.restore();
+  // Bevel top
+  const bv=ctx.createLinearGradient(x0,0,x1,0);
+  bv.addColorStop(0,'rgba(255,235,160,0)'); bv.addColorStop(0.2,'rgba(255,235,160,0.5)');
+  bv.addColorStop(0.8,'rgba(255,235,160,0.22)'); bv.addColorStop(1,'rgba(255,235,160,0)');
+  ctx.fillStyle=bv; ctx.fillRect(x0,y0,fw,2);
+}
+
+// ─── DETERMINE ACTIVE ELEMENT ───
+// barImg onerror already hides img and shows canvas.
+// We also detect load failure via a small timeout.
+let useCanvas = false;
+
+function initWithImg() {
+  useCanvas = false;
+  activeEl = barImg;
+  startExperience();
+}
+
+function initWithCanvas() {
+  useCanvas = true;
+  activeEl = barCanvas;
+  barCanvas.style.display = 'block';
+  barImg.style.display = 'none';
+  startExperience();
+}
+
+// Check: if image isn't complete after 800ms, fall back
+const imgCheck = setTimeout(() => {
+  if (!barImg.complete || barImg.naturalWidth === 0) initWithCanvas();
+}, 800);
+
+barImg.addEventListener('load', () => { clearTimeout(imgCheck); initWithImg(); });
+barImg.addEventListener('error', () => { clearTimeout(imgCheck); initWithCanvas(); });
+
+// If img was already cached
+if (barImg.complete && barImg.naturalWidth > 0) {
+  clearTimeout(imgCheck);
+  initWithImg();
+}
+
+// ─── SHARED ANIMATION STATE ───
+let rotY      = -0.35;   // radians
+let idleSpeed = 0.004;   // rad/frame
+let swayDir   = 1;
+let spinMode  = false;   // false = gentle sway, true = continuous spin
+
+function startExperience() {
+  // ── LOAD SEQUENCE
+  gsap.set(barLift,    { opacity: 0, y: 28 });
+  gsap.set(barLabel,   { opacity: 0 });
+  gsap.set(scrollHint, { opacity: 0 });
+
+  const loadTl = gsap.timeline({ delay: 0.45 });
+  loadTl
+    .to(barLift, { opacity: 1, y: 0, duration: 1.6, ease: 'power3.out' })
+    .to(barLabel,   { opacity: 1, duration: 1.1, ease: 'power2.out' }, '+=0.85')
+    .to(scrollHint, { opacity: 1, duration: 0.9, ease: 'power2.out' }, '-=0.4');
+
+  // ── RENDER LOOP
+  gsap.ticker.add(() => {
+    if (spinMode) {
+      // Full continuous spin at current idleSpeed
+      rotY += idleSpeed;
+    } else {
+      // Gentle sway: oscillate between -0.55 and +0.12 rad
+      rotY += idleSpeed * swayDir;
+      if (rotY >  0.12) { rotY =  0.12; swayDir = -1; }
+      if (rotY < -0.55) { rotY = -0.55; swayDir =  1; }
+    }
+
+    if (useCanvas) {
+      drawCanvasBar(rotY);
+    } else {
+      const deg = rotY * (180 / Math.PI);
+      barImg.style.transform = `rotateY(${deg}deg) rotateZ(-1.5deg)`;
+    }
+  });
+
+  // ── IDLE FLOAT
+  const floatProxy = { v: 0 };
+  gsap.to(floatProxy, {
+    v: 1, duration: 3.3, ease: 'sine.inOut', yoyo: true, repeat: -1,
+    onUpdate() {
+      if (launched) return;
+      gsap.set(barLift, { y: Math.sin(floatProxy.v * Math.PI) * -10 });
+    }
+  });
+
+  // ── SCROLL: PIN + SPIN + SHOOT
+  ScrollTrigger.create({
+    trigger: '#hero',
+    start: 'top top',
+    end: '+=80%',
+    pin: true,
+    scrub: false,
+    onUpdate(self) {
+      const p = self.progress;
+
+      // Enter spin mode as soon as user starts scrolling
+      if (p > 0.04 && !spinMode) {
+        spinMode = true;
+        idleSpeed = 0.004;
+      }
+      if (p <= 0.04 && spinMode && !launched) {
+        spinMode = false;
+        idleSpeed = 0.004;
+      }
+
+      // Ramp speed: 0–55% scroll → 0.004 to 0.38 rad/frame
+      if (spinMode) {
+        const sp = Math.min(p / 0.62, 1);
+        idleSpeed = 0.004 + Math.pow(sp, 2.2) * 0.376;
+      }
+
+      // LAUNCH at 52%
+      if (p >= 0.78 && !launched) {
+        launched = true;
+        gsap.killTweensOf(floatProxy);
+
+        gsap.to([barLabel, scrollHint], {
+          opacity: 0, duration: 0.12, ease: 'none', overwrite: true
+        });
+
+        gsap.to(barLift, {
+          y: -(window.innerHeight * 1.5),
+          duration: 0.52,
+          ease: 'power4.in',
+          overwrite: true
+        });
+
+        gsap.to(activeEl, {
+          opacity: 0, duration: 0.25, delay: 0.28, ease: 'power2.in'
+        });
+      }
+
+      // Scroll back up: reset
+      if (p < 0.68 && launched) {
+        launched  = false;
+        spinMode  = false;
+        idleSpeed = 0.004;
+        gsap.to(barLift,  { y: 0, duration: 0.65, ease: 'power3.out', overwrite: true });
+        gsap.to(activeEl, { opacity: 1, duration: 0.45, ease: 'power2.out' });
+        gsap.to(barLabel, { opacity: 1, duration: 0.45, ease: 'power2.out' });
+      }
+    }
+  });
+}
+
+// ─── REVEALS ───
+function reveal(el, extra) {
+  if (!el) return;
+  gsap.to(el, {
+    opacity: 1, y: 0, duration: 1.15, ease: 'power3.out', ...extra,
+    scrollTrigger: { trigger: el, start: 'top 86%', toggleActions: 'play none none none' }
+  });
+}
+
+// Material section
+reveal(document.querySelector('.material-eyebrow'));
+document.querySelectorAll('.material-block').forEach((el, i) => reveal(el, { delay: i * 0.07 }));
+document.querySelectorAll('.material-rule').forEach(el => {
+  gsap.to(el, {
+    opacity: 1, scaleX: 1, duration: 1.0, ease: 'power3.out',
+    scrollTrigger: { trigger: el, start: 'top 86%', toggleActions: 'play none none none' }
+  });
+});
+reveal(document.querySelector('.cu-mark'));
+reveal(document.querySelector('.cu-number'), { delay: 0.12 });
+reveal(document.querySelector('.material-props'), { delay: 0.08 });
+
+// Product section
+reveal(document.querySelector('.product-eyebrow'));
+reveal(document.querySelector('.product-title'),  { delay: 0.08 });
+reveal(document.querySelector('.product-weight'), { delay: 0.18 });
+reveal(document.querySelector('.product-specs'),  { delay: 0.14 });
+reveal(document.querySelector('.product-footer'), { delay: 0.22 });
+
+// ─── SECTION 4 REVEALS ───
+gsap.to('.close-bar-echo', {
+  opacity: 1, duration: 1.6, ease: 'power2.out',
+  scrollTrigger: { trigger: '#section-close', start: 'top 74%', toggleActions: 'play none none none' }
+});
+gsap.to('.close-headline', {
+  opacity: 1, y: 0, duration: 1.1, ease: 'power3.out', delay: 0.35,
+  scrollTrigger: { trigger: '#section-close', start: 'top 70%', toggleActions: 'play none none none' }
+});
+gsap.to('.close-sub', {
+  opacity: 1, y: 0, duration: 1.1, ease: 'power3.out', delay: 0.65,
+  scrollTrigger: { trigger: '#section-close', start: 'top 70%', toggleActions: 'play none none none' }
+});
+</script>
+</body>
+</html>
