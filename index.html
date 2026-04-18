@@ -933,13 +933,13 @@ function startExperience() {
   ScrollTrigger.create({
     trigger: '#hero',
     start: 'top top',
-    end: '+=160%',
+    end: '+=150%',
     pin: true,
     scrub: prefersReducedMotion ? true : 0.4,
     snap: prefersReducedMotion ? false : {
-      snapTo: [0, 1],
-      delay: 0.08,
-      duration: { min: 0.35, max: 0.65 },
+      snapTo: [0, 1.65],
+      delay: 0,
+      duration: { min: 0.4, max: 1.2 },
       ease: 'power2.inOut'
     },
     onUpdate(self) {
