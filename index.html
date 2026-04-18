@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Copper</title>
+<title>Copper · Five Kilograms of Pure Cu</title>
+<meta name="description" content="Five kilograms of electrolytic copper. 99.99% purity. Individually certified, serial-stamped, and delivered sealed.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300&display=swap" rel="stylesheet">
@@ -19,6 +20,12 @@
 }
 
 html { scroll-behavior: auto; }
+
+/* Focus — keyboard users */
+:focus-visible {
+  outline: 1px solid rgba(196, 114, 40, 0.60);
+  outline-offset: 4px;
+}
 
 body {
   background: var(--bg);
@@ -486,6 +493,7 @@ body::after {
   transition: color 0.28s ease, border-color 0.28s ease;
   cursor: pointer;
   display: inline-block;
+  text-decoration: none;
 }
 
 .product-cta:hover {
@@ -500,6 +508,59 @@ body::after {
   .spec-item:nth-child(2) { border-right: none; }
   .product-inner   { padding: 80px 32px; }
   .product-header  { flex-direction: column; gap: 16px; }
+  #site-nav        { padding: 20px 32px; }
+  .nav-links       { gap: 28px; }
+}
+
+/* Reduced motion — collapse all animations to instant */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-line { animation: none; opacity: 0.4; }
+  * { transition-duration: 0.01ms !important; }
+}
+
+/* ─── STICKY NAV ─── */
+#site-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 500;
+  padding: 26px 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.7s ease;
+}
+#site-nav.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.nav-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  color: rgba(196, 114, 40, 0.65);
+  cursor: default;
+  user-select: none;
+}
+.nav-links {
+  display: flex;
+  gap: 44px;
+  align-items: center;
+}
+.nav-links a {
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 7.5px;
+  letter-spacing: 0.52em;
+  color: rgba(240, 224, 200, 0.28);
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: color 0.28s ease;
+}
+.nav-links a:hover {
+  color: rgba(196, 114, 40, 0.72);
 }
 
 /* ─── SECTION: CLOSE ─── */
@@ -560,6 +621,15 @@ body::after {
 </style>
 </head>
 <body>
+
+<nav id="site-nav">
+  <span class="nav-logo">Cu</span>
+  <div class="nav-links">
+    <a href="#section-material">Material</a>
+    <a href="#section-product">Product</a>
+    <a href="#section-close">Inquire</a>
+  </div>
+</nav>
 
 <section id="hero">
   <div id="bar-lift">
@@ -642,7 +712,7 @@ body::after {
 
     <div class="product-footer">
       <div class="product-note">Each bar is individually assay-certified, serial-stamped, and delivered in sealed packaging. Cast once. Marked permanently.</div>
-      <div class="product-cta">Inquire</div>
+      <a href="#section-close" class="product-cta">Inquire</a>
     </div>
   </div>
 </section>
@@ -657,6 +727,9 @@ body::after {
 
 <script>
 gsap.registerPlugin(ScrollTrigger);
+
+// ─── REDUCED MOTION ───
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ─── ELEMENTS ───
 const barImg     = document.getElementById('bar-img');
@@ -835,7 +908,7 @@ function startExperience() {
   ScrollTrigger.create({
     trigger: '#hero',
     start: 'top top',
-    end: '+=80%',
+    end: '+=220%',
     pin: true,
     scrub: false,
     onUpdate(self) {
@@ -851,45 +924,69 @@ function startExperience() {
         idleSpeed = 0.004;
       }
 
-      // Ramp speed: 0–55% scroll → 0.004 to 0.38 rad/frame
+      // Ramp speed: 0–72% scroll → 0.004 to 0.38 rad/frame
       if (spinMode) {
-        const sp = Math.min(p / 0.62, 1);
-        idleSpeed = 0.004 + Math.pow(sp, 2.2) * 0.376;
+        const sp = Math.min(p / 0.72, 1);
+        idleSpeed = 0.004 + Math.pow(sp, 2.4) * 0.376;
       }
 
-      // LAUNCH at 52%
-      if (p >= 0.78 && !launched) {
+      // LAUNCH at 84%
+      if (p >= 0.84 && !launched) {
         launched = true;
         gsap.killTweensOf(floatProxy);
 
+        const dur = prefersReducedMotion ? 0 : 0.18;
         gsap.to([barLabel, scrollHint], {
-          opacity: 0, duration: 0.12, ease: 'none', overwrite: true
+          opacity: 0, duration: dur, ease: 'none', overwrite: true
         });
 
         gsap.to(barLift, {
-          y: -(window.innerHeight * 1.5),
-          duration: 0.52,
+          y: -(window.innerHeight * 1.6),
+          duration: prefersReducedMotion ? 0 : 0.65,
           ease: 'power4.in',
           overwrite: true
         });
 
         gsap.to(activeEl, {
-          opacity: 0, duration: 0.25, delay: 0.28, ease: 'power2.in'
+          opacity: 0,
+          duration: prefersReducedMotion ? 0 : 0.28,
+          delay: prefersReducedMotion ? 0 : 0.38,
+          ease: 'power2.in'
         });
       }
 
       // Scroll back up: reset
-      if (p < 0.68 && launched) {
+      if (p < 0.74 && launched) {
         launched  = false;
         spinMode  = false;
         idleSpeed = 0.004;
-        gsap.to(barLift,  { y: 0, duration: 0.65, ease: 'power3.out', overwrite: true });
-        gsap.to(activeEl, { opacity: 1, duration: 0.45, ease: 'power2.out' });
-        gsap.to(barLabel, { opacity: 1, duration: 0.45, ease: 'power2.out' });
+        gsap.to(barLift,  { y: 0, duration: 0.75, ease: 'power3.out', overwrite: true });
+        gsap.to(activeEl, { opacity: 1, duration: 0.50, ease: 'power2.out' });
+        gsap.to(barLabel, { opacity: 1, duration: 0.50, ease: 'power2.out' });
       }
     }
   });
 }
+
+// ─── NAV VISIBILITY ───
+const siteNav = document.getElementById('site-nav');
+ScrollTrigger.create({
+  trigger: '#section-material',
+  start: 'top 90%',
+  onEnter:     () => siteNav.classList.add('visible'),
+  onLeaveBack: () => siteNav.classList.remove('visible')
+});
+
+// ─── SMOOTH SCROLL FOR NAV ANCHORS ───
+// scrollIntoView works correctly here because GSAP inserts a spacer
+// for the pinned hero, so section offsetTops are accurate.
+document.querySelectorAll('.nav-links a').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(link.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+  });
+});
 
 // ─── REVEALS ───
 function reveal(el, extra) {
@@ -899,6 +996,22 @@ function reveal(el, extra) {
     scrollTrigger: { trigger: el, start: 'top 86%', toggleActions: 'play none none none' }
   });
 }
+
+// Ensure GSAP owns all CSS-transform-initialised elements before animating them
+// (prevents the browser CSS transform fighting GSAP's transform engine)
+gsap.set('.cu-mark',          { opacity: 0, y: 14 });
+gsap.set('.cu-number',        { opacity: 0, y: 8  });
+gsap.set('.material-eyebrow', { opacity: 0, y: 12 });
+gsap.set('.material-block',   { opacity: 0, y: 16 });
+gsap.set('.material-rule',    { opacity: 0, scaleX: 0, transformOrigin: 'left' });
+gsap.set('.material-props',   { opacity: 0, y: 10 });
+gsap.set('.product-eyebrow',  { opacity: 0, y: 12 });
+gsap.set('.product-title',    { opacity: 0, y: 20 });
+gsap.set('.product-weight',   { opacity: 0, y: 12 });
+gsap.set('.product-specs',    { opacity: 0, y: 12 });
+gsap.set('.product-footer',   { opacity: 0, y: 10 });
+gsap.set('.close-headline',   { opacity: 0, y: 10 });
+gsap.set('.close-sub',        { opacity: 0, y: 8  });
 
 // Material section
 reveal(document.querySelector('.material-eyebrow'));
@@ -933,6 +1046,9 @@ gsap.to('.close-sub', {
   opacity: 1, y: 0, duration: 1.1, ease: 'power3.out', delay: 0.65,
   scrollTrigger: { trigger: '#section-close', start: 'top 70%', toggleActions: 'play none none none' }
 });
+
+// Refresh after all triggers are registered so pin heights are correct
+window.addEventListener('load', () => ScrollTrigger.refresh());
 </script>
 </body>
 </html>
