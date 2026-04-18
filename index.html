@@ -528,12 +528,8 @@ body::after {
   align-items: center;
   justify-content: space-between;
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.7s ease;
-}
-#site-nav.visible {
-  opacity: 1;
   pointer-events: auto;
+  transition: opacity 0.7s ease;
 }
 .nav-logo {
   font-family: 'Cormorant Garamond', serif;
@@ -824,17 +820,30 @@ function drawCanvasBar(ry) {
 }
 
 // ─── DETERMINE ACTIVE ELEMENT ───
-// barImg onerror already hides img and shows canvas.
-// We also detect load failure via a small timeout.
+// Guard: startExperience() must only run ONCE.
+// If the image loads after the canvas fallback timeout fires,
+// we switch the render mode without re-running startExperience().
 let useCanvas = false;
+let experienceStarted = false;
 
 function initWithImg() {
+  if (experienceStarted) {
+    // Already running with canvas — just swap to real image, no re-init
+    useCanvas = false;
+    activeEl = barImg;
+    barImg.style.display = 'block';
+    barCanvas.style.display = 'none';
+    return;
+  }
+  experienceStarted = true;
   useCanvas = false;
   activeEl = barImg;
   startExperience();
 }
 
 function initWithCanvas() {
+  if (experienceStarted) return; // image loaded while canvas was initialising — ignore
+  experienceStarted = true;
   useCanvas = true;
   activeEl = barCanvas;
   barCanvas.style.display = 'block';
@@ -842,12 +851,12 @@ function initWithCanvas() {
   startExperience();
 }
 
-// Check: if image isn't complete after 800ms, fall back
+// Show canvas fallback sooner (300ms) so the bar is visible quickly on hosted
 const imgCheck = setTimeout(() => {
   if (!barImg.complete || barImg.naturalWidth === 0) initWithCanvas();
-}, 800);
+}, 300);
 
-barImg.addEventListener('load', () => { clearTimeout(imgCheck); initWithImg(); });
+barImg.addEventListener('load',  () => { clearTimeout(imgCheck); initWithImg();    });
 barImg.addEventListener('error', () => { clearTimeout(imgCheck); initWithCanvas(); });
 
 // If img was already cached
@@ -868,11 +877,11 @@ function startExperience() {
   gsap.set(barLabel,   { opacity: 0 });
   gsap.set(scrollHint, { opacity: 0 });
 
-  const loadTl = gsap.timeline({ delay: 0.45 });
+  const loadTl = gsap.timeline({ delay: 0.1 });
   loadTl
-    .to(barLift, { opacity: 1, y: 0, duration: 1.6, ease: 'power3.out' })
-    .to(barLabel,   { opacity: 1, duration: 1.1, ease: 'power2.out' }, '+=0.85')
-    .to(scrollHint, { opacity: 1, duration: 0.9, ease: 'power2.out' }, '-=0.4');
+    .to(barLift, { opacity: 1, y: 0, duration: 1.2, ease: 'power3.out' })
+    .to(barLabel,   { opacity: 1, duration: 0.9, ease: 'power2.out' }, '+=0.55')
+    .to(scrollHint, { opacity: 1, duration: 0.8, ease: 'power2.out' }, '-=0.3');
 
   // ── RENDER LOOP
   gsap.ticker.add(() => {
@@ -908,7 +917,7 @@ function startExperience() {
   ScrollTrigger.create({
     trigger: '#hero',
     start: 'top top',
-    end: '+=220%',
+    end: '+=160%',
     pin: true,
     scrub: false,
     onUpdate(self) {
@@ -924,14 +933,14 @@ function startExperience() {
         idleSpeed = 0.004;
       }
 
-      // Ramp speed: 0–72% scroll → 0.004 to 0.38 rad/frame
+      // Ramp speed: 0–65% scroll → 0.004 to 0.38 rad/frame
       if (spinMode) {
-        const sp = Math.min(p / 0.72, 1);
+        const sp = Math.min(p / 0.65, 1);
         idleSpeed = 0.004 + Math.pow(sp, 2.4) * 0.376;
       }
 
-      // LAUNCH at 84%
-      if (p >= 0.84 && !launched) {
+      // LAUNCH at 80%
+      if (p >= 0.80 && !launched) {
         launched = true;
         gsap.killTweensOf(floatProxy);
 
@@ -956,7 +965,7 @@ function startExperience() {
       }
 
       // Scroll back up: reset
-      if (p < 0.74 && launched) {
+      if (p < 0.70 && launched) {
         launched  = false;
         spinMode  = false;
         idleSpeed = 0.004;
@@ -968,14 +977,9 @@ function startExperience() {
   });
 }
 
-// ─── NAV VISIBILITY ───
+// ─── NAV: always visible, fades in with the page ───
 const siteNav = document.getElementById('site-nav');
-ScrollTrigger.create({
-  trigger: '#section-material',
-  start: 'top 90%',
-  onEnter:     () => siteNav.classList.add('visible'),
-  onLeaveBack: () => siteNav.classList.remove('visible')
-});
+gsap.to(siteNav, { opacity: 1, duration: 1.2, ease: 'power2.out', delay: 0.6 });
 
 // ─── SMOOTH SCROLL FOR NAV ANCHORS ───
 // scrollIntoView works correctly here because GSAP inserts a spacer
