@@ -897,9 +897,10 @@ function startExperience() {
   };
   gsap.ticker.add(renderLoop);
 
-  // ── IDLE FLOAT — stored so fireExit() can kill it cleanly
+  // ── IDLE FLOAT
+  // `launched` suppresses float y writes while exitTl owns the position.
   const floatProxy = { v: 0 };
-  let floatTween = gsap.to(floatProxy, {
+  gsap.to(floatProxy, {
     v: 1, duration: 3.3, ease: 'sine.inOut', yoyo: true, repeat: -1,
     onUpdate() {
       if (launched) return;
@@ -907,71 +908,48 @@ function startExperience() {
     }
   });
 
-  // ── EXIT: time-based, scroll is only the trigger
-  // Scroll crosses a threshold → fireExit() runs once on its own clock.
-  // When it finishes, the scroll jumps to the pin end which releases the
-  // pin and brings the next section to the top immediately.
+  // ── EXIT TIMELINE — scrubbed bidirectionally by scroll
+  // power2.inOut gives a symmetric curve: same feel forward and in reverse.
   const vh = window.innerHeight;
-  let heroPinST;
+  const exitTl = gsap.timeline({ paused: true });
+  exitTl
+    .to([barLabel, scrollHint], { opacity: 0,      duration: 0.3, ease: 'power1.inOut' }, 0)
+    .to(barLift,                { y: -vh * 1.85,   duration: 1,   ease: 'power2.inOut' }, 0)
+    .to(activeEl,               { opacity: 0,      duration: 0.3, ease: 'power1.inOut' }, 0.6);
 
-  function fireExit() {
-    launched = true;
-    floatTween.kill();
-    idleSpeed = 0.4; // lock spin at max for the duration of the exit
-
-    gsap.timeline({
-      onComplete() {
-        window.scrollTo({ top: heroPinST.end + 2, behavior: 'instant' });
-      }
-    })
-      .to([barLabel, scrollHint], { opacity: 0,        duration: 0.18, ease: 'power2.in' }, 0)
-      .to(barLift,                { y: -vh * 1.85,     duration: 0.85, ease: 'power4.in' }, 0)
-      .to(activeEl,               { opacity: 0,        duration: 0.28, ease: 'power2.in' }, 0.52);
-  }
-
-  // ── SCROLL: PIN (trigger only — no scrub, no snap)
-  // end: '+=300%' is a safe upper bound — even aggressive scrollers
-  // cannot reach it before the 0.85s animation completes.
-  // After animation, we jump scroll to heroPinST.end programmatically.
-  heroPinST = ScrollTrigger.create({
+  // ── SCROLL: PIN + SCRUB
+  // scrub: 1 — animation follows scroll with 1s smoothing (feels physical, not mechanical).
+  // Scroll down → plays forward. Scroll back up → plays in reverse, bar returns.
+  // At p = 1 the bar is off-screen and the pin releases, revealing the next section.
+  ScrollTrigger.create({
     trigger: '#hero',
     start: 'top top',
-    end: '+=300%',
+    end: '+=150%',
     pin: true,
+    scrub: 1,
     onUpdate(self) {
       const p = self.progress;
 
-      // Spin starts on first scroll
-      if (p > 0.01 && !spinMode) { spinMode = true; }
+      // Spin transitions
+      if (p > 0.02 && !spinMode) { spinMode = true;  }
+      if (p <= 0.02 && spinMode) { spinMode = false; idleSpeed = 0.004; }
 
-      // Speed ramps with scroll depth while pre-exit
-      if (spinMode && !launched) {
+      // Speed ramps up scrolling forward, back down scrolling in reverse
+      if (spinMode) {
         const sp = Math.min(p / 0.50, 1);
         idleSpeed = 0.004 + Math.pow(sp, 2.5) * 0.4;
       }
 
-      // Fire exit once user has scrolled ~10% of the pin (~30% of one viewport)
-      if (p > 0.10 && !launched) fireExit();
-    },
-    onEnterBack() {
-      // User scrolled back into the hero — reset everything for re-entry
-      launched  = false;
-      spinMode  = false;
-      idleSpeed = 0.004;
+      // Map scroll [55%→100%] to exit timeline [0→1]
+      // First 55% = spin-up only. Last 45% = bar exits upward.
+      const exitP = Math.max(0, Math.min(1, (p - 0.55) / 0.45));
 
-      // Restore bar instantly (it should just be there, not fade in)
-      gsap.set(barLift,               { opacity: 1, y: 0 });
-      gsap.set(activeEl,              { opacity: 1       });
-      gsap.set([barLabel, scrollHint],{ opacity: 1       });
-
-      // Restart the float
-      floatTween = gsap.to(floatProxy, {
-        v: 1, duration: 3.3, ease: 'sine.inOut', yoyo: true, repeat: -1,
-        onUpdate() {
-          if (launched) return;
-          gsap.set(barLift, { y: Math.sin(floatProxy.v * Math.PI) * -10 });
-        }
-      });
+      if (exitP > 0) {
+        launched = true;  // suppress float y during exit
+        exitTl.progress(exitP);
+      } else {
+        launched = false; // re-enable float when scrolled back before exit zone
+      }
     }
   });
 }
