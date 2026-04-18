@@ -927,6 +927,12 @@ function startExperience() {
     end: '+=150%',
     pin: true,
     scrub: 1,
+    snap: {
+      snapTo: [0, 1],          // snap to start (0) or completion (1)
+      delay: 0.15,             // wait 0.15s after scroll stops before snapping
+      duration: { min: 0.4, max: 0.8 },
+      ease: 'power2.inOut'
+    },
     onUpdate(self) {
       const p = self.progress;
 
