@@ -899,7 +899,7 @@ function startExperience() {
 
   // ── IDLE FLOAT — stored so fireExit() can kill it cleanly
   const floatProxy = { v: 0 };
-  const floatTween = gsap.to(floatProxy, {
+  let floatTween = gsap.to(floatProxy, {
     v: 1, duration: 3.3, ease: 'sine.inOut', yoyo: true, repeat: -1,
     onUpdate() {
       if (launched) return;
@@ -921,7 +921,6 @@ function startExperience() {
 
     gsap.timeline({
       onComplete() {
-        gsap.ticker.remove(renderLoop);
         window.scrollTo({ top: heroPinST.end + 2, behavior: 'instant' });
       }
     })
@@ -953,6 +952,26 @@ function startExperience() {
 
       // Fire exit once user has scrolled ~10% of the pin (~30% of one viewport)
       if (p > 0.10 && !launched) fireExit();
+    },
+    onEnterBack() {
+      // User scrolled back into the hero — reset everything for re-entry
+      launched  = false;
+      spinMode  = false;
+      idleSpeed = 0.004;
+
+      // Restore bar instantly (it should just be there, not fade in)
+      gsap.set(barLift,               { opacity: 1, y: 0 });
+      gsap.set(activeEl,              { opacity: 1       });
+      gsap.set([barLabel, scrollHint],{ opacity: 1       });
+
+      // Restart the float
+      floatTween = gsap.to(floatProxy, {
+        v: 1, duration: 3.3, ease: 'sine.inOut', yoyo: true, repeat: -1,
+        onUpdate() {
+          if (launched) return;
+          gsap.set(barLift, { y: Math.sin(floatProxy.v * Math.PI) * -10 });
+        }
+      });
     }
   });
 }
